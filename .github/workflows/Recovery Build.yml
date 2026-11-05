@@ -236,8 +236,19 @@ jobs:
           export RECOVERY_INSTALLER_PATH=bootable/recovery/installer
         fi
         lunch twrp_${{ inputs.DEVICE_NAME }}-eng
-        make $(tr -d _ <<< ${{ inputs.BUILD_TARGET }})image -j$(nproc --all)
+        make $(tr -d _ <<< ${{ inputs.BUILD_TARGET }})image -j$(nproc --all) 2>&1 | tee build.log
       working-directory: workspace
+
+    - name: Upload build log on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-failure-log
+        path: |
+          workspace/build.log
+          workspace/out/error*.log
+          workspace/out/verbose.log
+          workspace/out/soong.log
 
     - name: Building recovery (Omni)
       if: ${{ steps.buildtree.outputs.value == 'omni' }} 
