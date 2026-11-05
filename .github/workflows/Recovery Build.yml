@@ -237,6 +237,12 @@ jobs:
         fi
         lunch twrp_${{ inputs.DEVICE_NAME }}-eng
         make $(tr -d _ <<< ${{ inputs.BUILD_TARGET }})image -j$(nproc --all) 2>&1 | tee build.log
+        BUILD_STATUS=${PIPESTATUS[0]}
+        if [ ${BUILD_STATUS} -ne 0 ]; then
+          echo "Build failed with exit code ${BUILD_STATUS}"
+          exit ${BUILD_STATUS}
+        fi
+      shell: bash
       working-directory: workspace
 
     - name: Upload build log on failure
@@ -267,6 +273,10 @@ jobs:
         mkdir -p ${GITHUB_WORKSPACE}/release_assets
         find workspace/out/target/product/${{ inputs.DEVICE_NAME }}/ -maxdepth 2 -type f \( -name "*.img" -o -name "*.zip" \) -exec cp -v {} ${GITHUB_WORKSPACE}/release_assets/ \; || true
         ls -la ${GITHUB_WORKSPACE}/release_assets/
+        if [ ! -f "${GITHUB_WORKSPACE}/release_assets/${{ inputs.BUILD_TARGET }}.img" ] && [ ! -f "${GITHUB_WORKSPACE}/release_assets/recovery.img" ] && [ ! -f "${GITHUB_WORKSPACE}/release_assets/boot.img" ]; then
+          echo "ERROR: Expected target image was not found in release_assets! Build did not produce an image."
+          exit 1
+        fi
       shell: bash
 
     - name: Upload to Release
