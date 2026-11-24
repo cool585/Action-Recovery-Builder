@@ -86,19 +86,14 @@ jobs:
         chmod a+x ~/bin/repo
         sudo ln -sf ~/bin/repo /usr/bin/repo
 
-    - name: Initialize OrangeFox Repo
+    - name: Sync OrangeFox Source Tree
       run: |
-        mkdir workspace
-        cd workspace
         git config --global user.name "${GITHUB_ACTOR}"
         git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
-        repo init --depth=1 -u https://gitlab.com/OrangeFox/manifest.git -b fox_${{ inputs.MANIFEST_BRANCH }}
-      working-directory: .
-
-    - name: Repo Sync
-      run: |
-        repo sync -c --no-clone-bundle --no-tags --optimized-fetch --force-sync -j$(nproc --all)
-      working-directory: workspace
+        git clone https://gitlab.com/OrangeFox/sync.git ~/orangefox_sync
+        cd ~/orangefox_sync
+        ./orangefox_sync.sh --branch ${{ inputs.MANIFEST_BRANCH }} --path "${GITHUB_WORKSPACE}/workspace"
+      shell: bash
 
     - name: Clone Device Tree
       run: |
