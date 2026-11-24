@@ -226,11 +226,25 @@ jobs:
         cd /usr/bin
         sudo ln -sf python2 python
 
+    - name: Setup CCache
+      uses: actions/cache@v4
+      with:
+        path: ~/.ccache
+        key: ccache-${{ inputs.MANIFEST_BRANCH }}-${{ inputs.DEVICE_NAME }}-${{ github.run_id }}
+        restore-keys: |
+          ccache-${{ inputs.MANIFEST_BRANCH }}-${{ inputs.DEVICE_NAME }}-
+          ccache-${{ inputs.MANIFEST_BRANCH }}-
+
     - name: Building recovery (AOSP)
       if: ${{ steps.buildtree.outputs.value == 'aosp' }} 
       run: |
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
+        export USE_CCACHE=1
+        export CCACHE_EXEC=$(which ccache)
+        export CCACHE_DIR=~/.ccache
+        ccache -M 8G
+        ccache -z
         if [ "${{ inputs.RECOVERY_INSTALLER }}" = "true" ]; then
           export USE_RECOVERY_INSTALLER=true
           export RECOVERY_INSTALLER_PATH=bootable/recovery/installer
@@ -238,6 +252,8 @@ jobs:
         lunch twrp_${{ inputs.DEVICE_NAME }}-eng
         make $(tr -d _ <<< ${{ inputs.BUILD_TARGET }})image -j$(nproc --all) 2>&1 | tee build.log
         BUILD_STATUS=${PIPESTATUS[0]}
+        echo "=== CCache Statistics ==="
+        ccache -s
         if [ ${BUILD_STATUS} -ne 0 ]; then
           echo "Build failed with exit code ${BUILD_STATUS}"
           exit ${BUILD_STATUS}
@@ -261,11 +277,18 @@ jobs:
       run: |
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
+        export USE_CCACHE=1
+        export CCACHE_EXEC=$(which ccache)
+        export CCACHE_DIR=~/.ccache
+        ccache -M 8G
+        ccache -z
         if [ ${{ inputs.RECOVERY_INSTALLER }} = true ] && [ ${{ steps.recoveryinstaller.outcome == 'success' }} ]; then
           export USE_RECOVERY_INSTALLER=true
           export RECOVERY_INSTALLER_PATH=bootable/recovery/installer
         fi
         lunch ${{ steps.buildtree.outputs.value }}_${{ inputs.DEVICE_NAME }}-eng && make ${{ inputs.BUILD_TARGET }}image -j$(nproc --all)
+        echo "=== CCache Statistics ==="
+        ccache -s
       working-directory: workspace
 
     - name: Prepare Release Artifacts
