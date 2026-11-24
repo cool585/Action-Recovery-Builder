@@ -229,7 +229,7 @@ jobs:
     - name: Setup CCache
       uses: actions/cache@v4
       with:
-        path: ~/.ccache
+        path: ${{ github.workspace }}/.ccache
         key: ccache-${{ inputs.MANIFEST_BRANCH }}-${{ inputs.DEVICE_NAME }}-${{ github.run_id }}
         restore-keys: |
           ccache-${{ inputs.MANIFEST_BRANCH }}-${{ inputs.DEVICE_NAME }}-
@@ -240,9 +240,10 @@ jobs:
       run: |
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
+        mkdir -p "${GITHUB_WORKSPACE}/.ccache"
         export USE_CCACHE=1
         export CCACHE_EXEC=$(which ccache)
-        export CCACHE_DIR=~/.ccache
+        export CCACHE_DIR="${GITHUB_WORKSPACE}/.ccache"
         ccache -M 8G
         ccache -z
         if [ "${{ inputs.RECOVERY_INSTALLER }}" = "true" ]; then
@@ -277,9 +278,10 @@ jobs:
       run: |
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
+        mkdir -p "${GITHUB_WORKSPACE}/.ccache"
         export USE_CCACHE=1
         export CCACHE_EXEC=$(which ccache)
-        export CCACHE_DIR=~/.ccache
+        export CCACHE_DIR="${GITHUB_WORKSPACE}/.ccache"
         ccache -M 8G
         ccache -z
         if [ ${{ inputs.RECOVERY_INSTALLER }} = true ] && [ ${{ steps.recoveryinstaller.outcome == 'success' }} ]; then
